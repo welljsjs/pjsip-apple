@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #  Automatic build script for libssl and libcrypto
-#  for iPhoneOS and iPhoneSimulator
+#  for iPhoneOS, iPhoneSimulator, macOS, tvOS and watchOS
 #
 #  Created by Felix Schulze on 16.12.10.
 #  Copyright 2010-2017 Felix Schulze. All rights reserved.
@@ -32,7 +32,7 @@ DEFAULTVERSION="1.1.0i"
 #DEFAULTTARGETS="ios-sim-cross-x86_64 ios64-cross-arm64 ios-cross-armv7s ios-cross-armv7 tvos-sim-cross-x86_64 tvos64-cross-arm64 macos64-x86_64"
 DEFAULTARCHS="ios_x86_64 ios_arm64 tv_x86_64 tv_arm64 mac_x86_64 watchos_armv7k watchos-arm64_32"
 #DEFAULTTARGETS="ios-sim-cross-x86_64 ios64-cross-arm64 tvos-sim-cross-x86_64 tvos64-cross-arm64 macos64-x86_64 watchos-cross-armv7k watchos-cross-arm64_32"
-DEFAULTTARGETS="ios-sim-cross-i386 ios-sim-cross-x86_64"
+DEFAULTTARGETS="ios-sim-cross-i386 ios-sim-cross-x86_64 ios64-cross-arm64 ios-cross-armv7 ios-cross-armv7s macos64-x86_64" # only targeting macOS and iOS for integration with pjsip (do we really need i386???)
 
 # Minimum iOS/tvOS SDK version to build for
 MACOS_MIN_SDK_VERSION="10.11"
@@ -53,8 +53,11 @@ echo_help()
 	echo "     --ec-nistp-64-gcc-128         Enable configure option enable-ec_nistp_64_gcc_128 for 64 bit builds"
 	echo " -h, --help                        Print help (this message)"
 	echo "     --macos-sdk=SDKVERSION        Override macOS SDK version"
+	echo "	   --macos-min-sdk=SDKVERSION	 Override macOS minimum SDK version"
 	echo "     --ios-sdk=SDKVERSION          Override iOS SDK version"
+	echo "	   --ios-min-sdk=SDKVERSION	 	 Override iOS minimum SDK version"
 	echo "     --noparallel                  Disable running make with parallel jobs (make -j)"
+	echo "	   --reporoot					 Specify repository root directory of openssl"
 	echo "     --tvos-sdk=SDKVERSION         Override tvOS SDK version"
 	echo "     --disable-bitcode             Disable embedding Bitcode"
 	echo " -v, --verbose                     Enable verbose logging"
@@ -249,8 +252,16 @@ do
 		MACOS_SDKVERSION="${i#*=}"
 		shift
 	;;
+	--macos-min-sdk=*)
+		MACOS_MIN_SDK_VERSION="${i#*=}"
+		shift
+	;;
 	--ios-sdk=*)
 		IOS_SDKVERSION="${i#*=}"
+		shift
+	;;
+	--ios-min-sdk=*)
+		IOS_MIN_SDK_VERSION="${i#*=}"
 		shift
 	;;
 	--noparallel)
@@ -547,7 +558,7 @@ fi
 # Copy include directory
 echo "[DEBUG] include dir: ${INCLUDE_DIR}"
 echo "[DEBUG] include dir: ${CURRENTPATH}"
-cp -R "${INCLUDE_DIR}" "${CURRENTPATH}/include/"
+cp -R "${INCLUDE_DIR}" "${CURRENTPATH}/include/openssl/"
 
 # Only create intermediate file when building for multiple targets
 # For a single target, opensslconf.h is still present in $INCLUDE_DIR (and has just been copied to the target include dir)
