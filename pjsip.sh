@@ -167,7 +167,9 @@ function configure () {
 		CONFIGURE="./configure-iphone"
 	elif [ "$TYPE" == "macos" ]; then
 		# macOS
-		CONFIGURE="./configure --disable-ffmpeg" # Disable ffmpeg (default: not disabled), using VideoToolbox
+		# Disable SDL, not available on every platform
+		# Disable ffmpeg (default: not disabled), using VideoToolbox
+		CONFIGURE="./configure --disable-ffmpeg --disable-sdl"
 	else
 		echo "[CRITICAL] [ERROR] Type is unknown: $TYPE"
 	fi

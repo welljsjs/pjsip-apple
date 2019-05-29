@@ -82,12 +82,12 @@ LICENSE
                               ]
   s.osx.frameworks          = 'AppKit', 'VideoToolbox', 'AudioToolbox'
 
-  s.header_search_paths     = [
-                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib/include"',
-                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib-util/include"',
-                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjmedia/include"',
-                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjnath/include"',
-                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjsip/include"'
+  header_search_paths     = [
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_apple/pjlib/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_apple/pjlib-util/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_apple/pjmedia/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_apple/pjnath/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_apple/pjsip/include"'
                               ]
 
   s.xcconfig                = {
