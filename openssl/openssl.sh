@@ -558,6 +558,7 @@ fi
 # Copy include directory
 echo "[DEBUG] include dir: ${INCLUDE_DIR}"
 echo "[DEBUG] include dir: ${CURRENTPATH}"
+mkdir -p "${CURRENTPATH}/include/openssl/"
 cp -R "${INCLUDE_DIR}" "${CURRENTPATH}/include/openssl/"
 
 # Only create intermediate file when building for multiple targets
@@ -567,7 +568,7 @@ if [ ${#OPENSSLCONF_ALL[@]} -gt 1 ]; then
 	# Prepare intermediate header file
 	# This overwrites opensslconf.h that was copied from $INCLUDE_DIR
 	OPENSSLCONF_INTERMEDIATE="${CURRENTPATH}/include/openssl/opensslconf.h"
-	cp "${REPOROOT}/include/opensslconf-template.h" "${OPENSSLCONF_INTERMEDIATE}"
+	cp "${CURRENTPATH}/include/opensslconf-template.h" "${OPENSSLCONF_INTERMEDIATE}"
 
 	# Loop all header files
 	LOOPCOUNT=0

@@ -34,7 +34,6 @@ LIB_PATHS=("pjlib/lib" \
            "third_party/lib")
 
 OPENSSL_PREFIX=
-#OPENH264_PREFIX=
 OPUS_PREFIX=
 while [ "$#" -gt 0 ]; do
     case $1 in
@@ -104,9 +103,6 @@ function config_site() {
 function configure () {
 	TYPE=$1
 	ARCH=$2
-#	PLATFORM=$3
-#	SDK_VERSION=$4
-#	DEPLOYMENT_VERSION=$5
 	LOG=$3
 
 	HAS_VIDEO=1
@@ -129,6 +125,7 @@ function configure () {
 	elif [ "$TYPE" == "ios" ]; then
 		# iOS
 		echo "#define PJ_CONFIG_IPHONE 1" >> "${PJSIP_CONFIG_PATH}"
+		echo "#undef PJ_IPHONE_OS_HAS_MULTITASKING_SUPPORT" >> "${PJSIP_CONFIG_PATH}"
 		echo "#define PJ_IPHONE_OS_HAS_MULTITASKING_SUPPORT 0" >> "${PJSIP_CONFIG_PATH}" # for iOS 9+
 		if [[ ${HAS_VIDEO} ]]; then
 			echo "#define PJMEDIA_HAS_VIDEO 1" >> "${PJSIP_CONFIG_PATH}"
@@ -143,6 +140,10 @@ function configure () {
 	echo "#define PJ_HAS_IPV6 1" >> "${PJSIP_CONFIG_PATH}" # Enable IPV6
 	echo "#include <pj/config_site_sample.h>" >> "${PJSIP_CONFIG_PATH}" # Include example config
 
+	unset DEVPATH
+	unset MIN_IOS
+	unset CFLAGS
+	unset LDFLAGS
 	if [ "$TYPE" == "macos" ]; then
 		# OSX
 		export DEVPATH="${OSX_PLATFORM}/Developer"
@@ -166,7 +167,9 @@ function configure () {
 		CONFIGURE="./configure-iphone"
 	elif [ "$TYPE" == "macos" ]; then
 		# macOS
-		CONFIGURE="./configure"
+		CONFIGURE="./configure --disable-ffmpeg" # Disable ffmpeg (default: not disabled), using VideoToolbox
+	else
+		echo "[CRITICAL] [ERROR] Type is unknown: $TYPE"
 	fi
 
 
@@ -194,10 +197,16 @@ function configure () {
 	fi
 	export LDFLAGS="${LDFLAGS} -lstdc++"
 
+	# Log
+	if [ -f "${LOG}" ]; then
+		rm ${LOG}
+		touch ${LOG}
+	fi
 
-	echo "[DEBUG] distclean..."
-	make distclean > ${LOG} 2>&1
-	echo "[DEBUG] configuring..."
+	clean_libs ${ARCH} ${TYPE}
+	echo "Configuring for ${TYPE}, ${ARCH}"
+	echo "Configuring for ${TYPE}, ${ARCH}" > ${LOG} 2>&1
+	make distclean >> ${LOG} 2>&1
 	ARCH="-arch ${ARCH}" ${CONFIGURE} >> ${LOG} 2>&1
 	echo "Done configuring" >> ${LOG} 2>&1
 }
@@ -211,31 +220,10 @@ function build () {
 	cd ${PJSIP_DIR}
 
 	LOG=${BASE_DIR}/${TYPE}-${ARCH}.log
-#	export BUILD_TOOLS="${DEVELOPER}"
-#	export CC="${BUILD_TOOLS}/usr/bin/gcc -fembed-bitcode -arch ${ARCH}"
-
-#	mkdir -p "lib-${TYPE}"
-
-#	if [ "$TYPE" == "ios" ]; then
-#		# IOS
-#		if [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "i386" ]; then
-##			configure "iPhoneSimulator" $ARCH $LOG
-#			configure $TYPE $ARCH $LOG
-#		else
-##			configure "iPhoneOS" $ARCH $LOG
-#			configure $TYPE $ARCH $LOG
-#		fi
-#	elif [ "$TYPE" == "macos" ]; then
-#		# OSX
-##		configure "MacOSX" $ARCH $LOG
-#		configure $TYPE $ARCH $LOG
-#	fi
 
 	configure $TYPE $ARCH $LOG
 
 	echo "Building for ${TYPE} ${ARCH}..."
-
-#	clean_libs ${ARCH}
 	make dep >> ${LOG} 2>&1
 	make clean >> ${LOG}
 	make lib >> ${LOG} 2>&1
@@ -254,7 +242,7 @@ function clean_libs () {
             rm -rf "${DIR}"/*
         fi
 
-        DIR="${PJSIP_DIR}/${SRC_DIR}-${ARCH}"
+        DIR="${PJSIP_DIR}/${SRC_DIR}-${TYPE}-${ARCH}"
         if [ -d "${DIR}" ]; then
             rm -rf "${DIR}"
         fi
@@ -276,94 +264,46 @@ function copy_libs () {
     done
 }
 
-function _build() {
-	pushd . > /dev/null
-	cd ${PJSIP_DIR}
 
-	ARCH=$1
-	LOG=${BASE_DIR}/${ARCH}.log
+function do_lipo() {
+	TYPE=$1
+	shift
+	TMP=`mktemp -t lipo`
+	echo "Lipo libs... (${TMP})"
 
-	# configure
-	CONFIGURE="./configure"
-	if [[ ${OPENSSL_PREFIX} ]]; then
-		CONFIGURE="${CONFIGURE} --with-ssl=${OPENSSL_PREFIX}"
-	fi
-	if [[ ${OPUS_PREFIX} ]]; then
-		CONFIGURE="${CONFIGURE} --with-opus=${OPUS_PREFIX}"
-	fi
-	# flags
-	if [[ ! ${CFLAGS} ]]; then
-		export CFLAGS=
-	fi
-	if [[ ! ${LDFLAGS} ]]; then
-		export LDFLAGS=
-	fi
-	if [[ ${OPENSSL_PREFIX} ]]; then
-		export CFLAGS="${CFLAGS} -I${OPENSSL_PREFIX}/include"
-		export LDFLAGS="${LDFLAGS} -L${OPENSSL_PREFIX}/lib"
-	fi
-	export LDFLAGS="${LDFLAGS} -lstdc++"
+	for LIB_DIR in ${LIB_PATHS[*]}; do # loop over libs
+		DST_DIR="${PJSIP_DIR}/${LIB_DIR}"
 
-	echo "Building for ${ARCH}..."
+		# use the first architecture to find all libraries
+		PATTERN_DIR="${DST_DIR}-${TYPE}-$1"
+		for PATTERN_FILE in `ls -l1 "${PATTERN_DIR}"`; do
+			OPTIONS=""
 
-	clean_libs ${ARCH}
+			# loop over all architectures and collect the current library
+			for ARCH in "$@"; do
+				FILE="${DST_DIR}-${TYPE}-${ARCH}/${PATTERN_FILE/-$1-/-${ARCH}-}"
+				if [ -e "${FILE}" ]; then
+					OPTIONS="$OPTIONS -arch ${ARCH} ${FILE}"
+				fi
+			done
 
-	make distclean > ${LOG} 2>&1
-	ARCH="-arch ${ARCH}" ${CONFIGURE} >> ${LOG} 2>&1
-	make dep >> ${LOG} 2>&1
-	make clean >> ${LOG}
-	make lib >> ${LOG} 2>&1
+			if [ "$OPTIONS" != "" ]; then
+				OUTPUT_PREFIX=$(dirname "${DST_DIR}")
+				OUTPUT="${OUTPUT_PREFIX}/lib/${PATTERN_FILE/-$1-/-}"
 
-	copy_libs ${ARCH}
-}
+				OPTIONS="${OPTIONS} -create -output ${OUTPUT}"
+				echo "$OPTIONS" >> "${TMP}"
+			fi
+		done
+	done
 
-function i386() {
-#    export DEVPATH="`xcrun -sdk iphonesimulator --show-sdk-platform-path`/Developer"
-#    export CFLAGS="-O2 -m32 -mios-simulator-version-min=8.0"
-#    export LDFLAGS="-O2 -m32 -mios-simulator-version-min=8.0"
-    _build "i386"
-}
-function x86_64() {
-#    export DEVPATH="`xcrun -sdk iphonesimulator --show-sdk-platform-path`/Developer"
-#    export CFLAGS="-O2 -m32 -mios-simulator-version-min=8.0"
-#    export LDFLAGS="-O2 -m32 -mios-simulator-version-min=8.0"
-    _build "x86_64"
-}
-
-
-function lipo() {
-    TMP=`mktemp -t lipo`
-    echo "Lipo libs... (${TMP})"
-
-    for LIB_DIR in ${LIB_PATHS[*]}; do # loop over libs
-        DST_DIR="${PJSIP_DIR}/${LIB_DIR}"
-
-        # use the first architecture to find all libraries
-        PATTERN_DIR="${DST_DIR}-$1"
-        for PATTERN_FILE in `ls -l1 "${PATTERN_DIR}"`; do
-            OPTIONS=""
-
-            # loop over all architectures and collect the current library
-            for ARCH in "$@"; do
-                FILE="${DST_DIR}-${ARCH}/${PATTERN_FILE/-$1-/-${ARCH}-}"
-                if [ -e "${FILE}" ]; then
-                    OPTIONS="$OPTIONS -arch ${ARCH} ${FILE}"
-                fi
-            done
-
-            if [ "$OPTIONS" != "" ]; then
-                OUTPUT_PREFIX=$(dirname "${DST_DIR}")
-                OUTPUT="${OUTPUT_PREFIX}/lib/${PATTERN_FILE/-$1-/-}"
-
-                OPTIONS="${OPTIONS} -create -output ${OUTPUT}"
-                echo "$OPTIONS" >> "${TMP}"
-            fi
-        done
-    done
-
-    while read LINE; do
-        xcrun -sdk macosx lipo ${LINE}
-    done < "${TMP}"
+	while read LINE; do
+		if [ "$TYPE" == "ios" ]; then
+			lipo ${LINE}
+		else
+			lipo ${LINE}
+		fi
+	done < "${TMP}"
 }
 
 download "${PJSIP_URL}" "${PJSIP_DIR}"
@@ -376,7 +316,8 @@ build "armv7" "${IPHONEOS_SDK}" "ios"
 build "armv7s" "${IPHONEOS_SDK}" "ios"
 build "arm64" "${IPHONEOS_SDK}" "ios"
 
-build "i386" "${OSX_SDK}" "macos"
+# We don't support x86 for macOS.
 build "x86_64" "${OSX_SDK}" "macos"
 
-#lipo x86_64 i386
+do_lipo "ios" "i386" "x86_64" "armv7" "armv7s" "arm64"
+do_lipo "macos" "x86_64"

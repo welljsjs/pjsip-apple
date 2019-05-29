@@ -1,11 +1,11 @@
 Pod::Spec.new do |s|
-  s.name         = "pjsip-macosx"
+  s.name         = "pjsip-apple"
   s.version      = "2.8.0"
   s.summary      = "pjsip for macOS (OSX)"
   s.homepage     = "http://www.pjsip.org"
   s.author       = 'www.pjsip.org'
-  s.source       = { :git => "https://github.com/welljsjs/pjsip.git", :tag => "#{s.version}" }
-  s.platform     = :osx, '10.12'
+  s.source       = { :git => "https://github.com/welljsjs/pjsip-macosx.git", :tag => "#{s.version}" }
+  #s.platform     = :osx, '10.12'
   s.description  = <<-DESC
 PJSIP is a free and open source multimedia communication library written in C language implementing standard based protocols such as SIP, SDP, RTP, STUN, TURN, and ICE. It combines signaling protocol (SIP) with rich multimedia framework and NAT traversal functionality into high level API that is portable and suitable for almost any type of systems ranging from desktops, embedded systems, to mobile handsets.
 
@@ -24,43 +24,81 @@ PJSIP may include third party software in its source code distribution. Third Pa
 LICENSE
    }
 
-  s.source_files        =
-  s.public_header_files =[
-                          'build/pjproject/src/pjlib/include/**/*.h',
-                          'build/pjproject/src/pjlib-util/include/**/*.h',
-                          'build/pjproject/src/pjmedia/include/**/*.h',
-                          'build/pjproject/src/pjnath/include/**/*.h',
-                          'build/pjproject/src/pjsip/include/**/*.h',
-                          'build/pjproject/src/pjsip/include/**/*.hpp']
-  s.preserve_paths      =['build/pjproject/src/pjlib/include/**/*',
-                          'build/pjproject/src/pjlib-util/include/**/*',
-                          'build/pjproject/src/pjmedia/include/**/*',
-                          'build/pjproject/src/pjnath/include/**/*',
-                          'build/pjproject/src/pjsip/include/**/*']
- 
-   s.vendored_libraries  =['build/openh264/lib/*.a',
-                           'build/opus/dependencies/lib/*.a',
-                           'build/pjproject/src/pjlib/lib/*.a',
-                           'build/pjproject/src/pjlib-util/lib/*.a',
-                           'build/pjproject/src/pjmedia/lib/*.a',
-                           'build/pjproject/src/pjnath/lib/*.a',
-                           'build/pjproject/src/pjsip/lib/*.a',
-                           'build/pjproject/src/third_party/lib/*.a']
-  
-  header_search_paths   =['"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib/include"',
-                          '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib-util/include"',
-                          '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjmedia/include"',
-                          '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjnath/include"',
-                          '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjsip/include"']
+  s.ios.deployment_target   = '9.0'
+  s.ios.public_header_files = [
+                                'build/pjproject/src/pjlib/include/**/*.h',
+                                'build/pjproject/src/pjlib-util/include/**/*.h',
+                                'build/pjproject/src/pjmedia/include/**/*.h',
+                                'build/pjproject/src/pjnath/include/**/*.h',
+                                'build/pjproject/src/pjsip/include/**/*.h',
+                                'build/pjproject/src/pjsip/include/**/*.hpp'
+                              ]
+  s.ios.preserve_paths      = [
+                                'build/pjproject/src/pjlib/include/**/*',
+                                'build/pjproject/src/pjlib-util/include/**/*',
+                                'build/pjproject/src/pjmedia/include/**/*',
+                                'build/pjproject/src/pjnath/include/**/*',
+                                'build/pjproject/src/pjsip/include/**/*'
+                              ]
+  s.ios.vendored_libraries  = [
+                                # 'build/openh264/lib/*.a',
+                                'build/openssl/lib/ios/*.a',
+                                'build/opus/dependencies/lib/*ios.a',
+                                'build/pjproject/src/pjlib/lib/*ios.a',
+                                'build/pjproject/src/pjlib-util/lib/*ios.a',
+                                'build/pjproject/src/pjmedia/lib/*ios.a',
+                                'build/pjproject/src/pjnath/lib/*ios.a',
+                                'build/pjproject/src/pjsip/lib/*ios.a',
+                                'build/pjproject/src/third_party/lib/*ios.a'
+                              ]
+  s.ios.frameworks          = 'UIKit', 'VideoToolbox', 'AudioToolbox'
 
-  s.xcconfig            = {
-      'HEADER_SEARCH_PATHS'          => header_search_paths.join(' '),
-      'GCC_PREPROCESSOR_DEFINITIONS' => 'PJ_AUTOCONF=1'
-  }
+  s.osx.deployment_target = '10.12'
+  s.osx.public_header_files = [
+                                'build/pjproject/src/pjlib/include/**/*.h',
+                                'build/pjproject/src/pjlib-util/include/**/*.h',
+                                'build/pjproject/src/pjmedia/include/**/*.h',
+                                'build/pjproject/src/pjnath/include/**/*.h',
+                                'build/pjproject/src/pjsip/include/**/*.h',
+                                'build/pjproject/src/pjsip/include/**/*.hpp'
+                              ]
+  s.osx.preserve_paths      = [
+                                'build/pjproject/src/pjlib/include/**/*',
+                                'build/pjproject/src/pjlib-util/include/**/*',
+                                'build/pjproject/src/pjmedia/include/**/*',
+                                'build/pjproject/src/pjnath/include/**/*',
+                                'build/pjproject/src/pjsip/include/**/*'
+                              ]
+  s.osx.vendored_libraries  = [
+                                # 'build/openh264/lib/*.a',
+                                'build/openssl/lib/macos/*.a',
+                                'build/opus/dependencies/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/pjlib/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/pjlib-util/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/pjmedia/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/pjnath/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/pjsip/lib/*darwin18.6.0.a',
+                                'build/pjproject/src/third_party/lib/*darwin18.6.0.a'
+                              ]
+  s.osx.frameworks          = 'AppKit', 'VideoToolbox', 'AudioToolbox'
+
+  s.header_search_paths     = [
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjlib-util/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjmedia/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjnath/include"',
+                                '"$(PODS_ROOT)/Headers/Public/pjsip_macosx/pjsip/include"'
+                              ]
+
+  s.xcconfig                = {
+                                'HEADER_SEARCH_PATHS'          => header_search_paths.join(' '),
+                                'GCC_PREPROCESSOR_DEFINITIONS' => 'PJ_AUTOCONF=1'
+                              }
+  
+
 
   #s.dependency          = 'OpenSSL-Universal'
   #s.frameworks 		= 'CFNetwork', 'AudioToolbox', 'AVFoundation', 'CoreMedia', 'CoreVideo', 'QuartzCore', 'OpenGLES'
-  s.frameworks = 'AppKit', 'VideoToolbox'
   s.libraries           = 'stdc++'
   s.header_mappings_dir = 'build/pjproject/src'
   s.requires_arc        = false
